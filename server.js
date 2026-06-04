@@ -14,6 +14,7 @@ const nowpaymentsRoutes = require("./routes/nowpaymentsRoutes");
 const wooRoutes = require("./routes/wooRoutes");
 const cartRoutes = require("./routes/cartRoutes");
 const nodemailer = require("nodemailer");
+const axios = require("axios");
 const app = express();
 
 const allowedOrigins = [
