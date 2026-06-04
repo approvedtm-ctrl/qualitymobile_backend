@@ -13,7 +13,7 @@ const btcpayRoutes = require("./routes/btcpayRoutes");
 const nowpaymentsRoutes = require("./routes/nowpaymentsRoutes");
 const wooRoutes = require("./routes/wooRoutes");
 const cartRoutes = require("./routes/cartRoutes");
-
+const nodemailer = require("nodemailer");
 const app = express();
 
 const allowedOrigins = [
