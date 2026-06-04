@@ -1,9 +1,9 @@
 const { db, getUseDb } = require("../config/db");
 const { SAMPLE_ORDERS } = require("../utils/demoData");
 const ordersCache = [];
-const nodemailer = require("nodemailer");
 
-const createOrder = (req, res) => {
+
+const createOrder = async (req, res) => {
     const { cart, user_email, total, customer_id, order_date, items, delivery_address } = req.body;
     const useDb = getUseDb();
 
@@ -30,7 +30,7 @@ const createOrder = (req, res) => {
         AND u.id = ?
     `;
 
-        connection.query(query, [customer_id], (err, users) => {
+        connection.query(query, [customer_id], async (err, users) => {
             connection.release();
 
             if (err) {
@@ -57,28 +57,64 @@ const createOrder = (req, res) => {
                }
              });
        */
-
-            const transporter = nodemailer.createTransport({
-                host: "smtp.gmail.com",
-                port: 587,
-                secure: false, // IMPORTANT for port 587
-                auth: {
-                    user: "aniketkumarsaha5@gmail.com",
-                    pass: "elee suee lpvy miiz",
-                },
-                tls: {
-                    rejectUnauthorized: false
-                },
-                connectionTimeout: 10000,
-                greetingTimeout: 10000,
-                socketTimeout: 10000,
+            /*
+                  const transporter = nodemailer.createTransport({
+              host: "smtp.gmail.com",
+              port: 587,
+              secure: false, // IMPORTANT for port 587
+              auth: {
+                  user: "aniketkumarsaha5@gmail.com",
+                                    pass: "elee suee lpvy miiz",
+              },
+              tls: {
+                rejectUnauthorized: false
+              },
+              connectionTimeout: 10000,
+              greetingTimeout: 10000,
+              socketTimeout: 10000,
             });
-
-            const mailOptions = {
-                from: "aniketkumarsaha5@gmail.com",
-                to: user_email,
-                subject: "🎉 Take Benefit of 40% Discount!",
-                html: `
+            
+                  const mailOptions = {
+                    from: "aniketkumarsaha5@gmail.com",
+                    to: user_email,
+                    subject: "🎉 Take Benefit of 40% Discount!",
+                    html: `
+                      <div style="font-family: Arial; padding:20px;">
+                        <h2>Hello ${user_email},</h2>
+                        <p>Good news! You qualify for a special offer.</p>
+                        <h3 style="color:green;">Get 40% OFF on your first order!</h3>
+                        <p>Use this discount today and shop now.</p>
+                        <a href="https://qualitymobileshop.de/"
+                           style="display:inline-block;
+                                  padding:12px 20px;
+                                  background:#007bff;
+                                  color:white;
+                                  text-decoration:none;
+                                  border-radius:5px;">
+                            Shop Now
+                        </a>
+                      </div>
+                    `
+                  };
+            
+                  // Send email in background (NO res.json here)
+                  transporter.sendMail(mailOptions)
+                    .then(() => {
+                      console.log(`Discount email sent to: ${user_email}`);
+                    })
+                    .catch((mailErr) => {
+                      console.error("Mail Error:", mailErr);
+                    });*/
+            /*
+    const resend = new Resend('re_TDvnKb5f_BCZFb7Rk5WXkVM9hhzaXmqeo');
+     //   const resend = new Resend(process.env.RESEND_API_KEY);
+    
+    try {
+      const result = await resend.emails.send({
+        from: "support@qualitymobileshop.de",
+        to: user_email,
+        subject: "🎉 Take Benefit of 40% Discount!",
+        html: `
           <div style="font-family: Arial; padding:20px;">
             <h2>Hello ${user_email},</h2>
             <p>Good news! You qualify for a special offer.</p>
@@ -94,17 +130,21 @@ const createOrder = (req, res) => {
                 Shop Now
             </a>
           </div>
-        `
-            };
+        `,
+      });
+    
+      console.log("Resend success:", result);
+    } catch (err) {
+      console.error("Resend error:", err);
+    }*/
 
-            // Send email in background (NO res.json here)
-            transporter.sendMail(mailOptions)
-                .then(() => {
-                    console.log(`Discount email sent to: ${user_email}`);
-                })
-                .catch((mailErr) => {
-                    console.error("Mail Error:", mailErr);
-                });
+
+
+
+
+
+
+
         });
     });
 
