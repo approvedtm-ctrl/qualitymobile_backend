@@ -803,7 +803,576 @@ const updateDeliveryDate = (req, res) => {
    });
 };
 
+app.post("/api/admin/ticket/reply", async (req, res) => {
 
+   try {
+
+      console.log("Reply Request:", req.body);
+
+      const {
+         ticketId,
+         message
+      } = req.body;
+      console.log("ticket id admin", ticketId);
+      if (!ticketId) {
+
+         return res.status(400).json({
+            success: false,
+            message: "Ticket ID Missing"
+         });
+
+      }
+
+      const [rows] = await db.promise().query(
+         "SELECT chat_json FROM support_tickets WHERE ticket_id=?",
+         [ticketId]
+      );
+
+      if (rows.length === 0) {
+
+         return res.status(404).json({
+            success: false,
+            message: "Ticket Not Found"
+         });
+
+      }
+
+      let chat = [];
+
+      try {
+
+         chat = JSON.parse(
+            rows[0].chat_json || "[]"
+         );
+
+      } catch {
+
+         chat = [];
+
+      }
+
+      const newMessage = {
+         sender: "bot",
+         text: message.text,
+
+      };
+
+      chat.push(newMessage);
+
+      await db.promise().query(
+         "UPDATE support_tickets SET chat_json=? WHERE ticket_id=?",
+         [
+            JSON.stringify(chat),
+            ticketId
+         ]
+      );
+      await db.promise().query(
+         "UPDATE support_tickets SET message_count=? WHERE ticket_id=?",
+         [
+            0,
+            ticketId
+         ]
+      );
+      console.log("Reply Saved");
+
+      res.json({
+         success: true,
+         chat
+      });
+
+   } catch (err) {
+
+      console.log("REPLY ERROR:", err);
+
+      res.status(500).json({
+         success: false,
+         message: err.message
+      });
+
+   }
+
+});
+
+
+app.get("/api/admin/ticket/:ticketId", async (req, res) => {
+
+   try {
+
+      const ticketId = req.params.ticketId;
+
+      const [rows] = await db.promise().query(
+         "SELECT * FROM support_tickets WHERE ticket_id=?",
+         [ticketId]
+      );
+
+      if (rows.length === 0) {
+
+         return res.status(404).json({
+            success: false,
+            message: "Ticket Not Found"
+         });
+
+      }
+
+      let chat = [];
+
+      try {
+
+         chat = JSON.parse(rows[0].chat_json || "[]");
+
+      } catch {
+
+         chat = [];
+
+      }
+
+      res.json({
+         success: true,
+         ticket: rows[0],
+         chat
+      });
+
+   } catch (err) {
+
+      console.log(err);
+
+      res.status(500).json({
+         success: false,
+         message: err.message
+      });
+
+   }
+
+});
+
+app.get("/api/admin/tickets", async (req, res) => {
+
+   try {
+
+      const [rows] = await db.promise().query(`
+      SELECT
+      ticket_id,
+      issue_type,
+      email,
+      description,
+      created_at,
+      message_count
+      FROM support_tickets
+      ORDER BY id DESC
+    `);
+
+      res.json({
+         success: true,
+         tickets: rows
+      });
+
+   } catch (err) {
+
+      console.log("GET TICKETS ERROR:", err);
+
+      res.status(500).json({
+         success: false,
+         message: err.message
+      });
+
+   }
+
+});
+
+
+
+
+
+
+
+app.post("/api/ticket/reply", async (req, res) => {
+
+   console.log("================================");
+   console.log("REPLY API CALLED");
+   console.log("BODY =>", req.body);
+
+   try {
+
+      const { ticketId, message } = req.body;
+      console.log("Searching Ticket =>", ticketId);
+      if (!ticketId) {
+
+         console.log("No Ticket ID");
+
+         return res.status(400).json({
+            success: false,
+            message: "Ticket ID missing"
+         });
+
+      }
+
+      console.log("Searching Ticket =>", ticketId);
+
+      const [rows] = await db.promise().query(
+         "SELECT * FROM support_tickets WHERE ticket_id=?",
+         [ticketId]
+      );
+
+      console.log("DB Result =>", rows);
+
+      if (rows.length === 0) {
+
+         console.log("Ticket Not Found");
+
+         return res.status(404).json({
+            success: false,
+            message: "Ticket Not Found"
+         });
+
+      }
+
+      let chat = [];
+
+      try {
+
+         chat = rows[0].chat_json
+            ? JSON.parse(rows[0].chat_json)
+            : [];
+
+      } catch (e) {
+
+         console.log("JSON Parse Error =>", e);
+
+         chat = [];
+
+      }
+
+      console.log("Old Chat =>", chat);
+
+      chat.push(message);
+
+      console.log("New Chat =>", chat);
+
+      await db.promise().query(
+         "UPDATE support_tickets SET chat_json=? WHERE ticket_id=?",
+         [
+            JSON.stringify(chat),
+            ticketId
+         ]
+      );
+
+
+      await db.promise().query(
+         "UPDATE support_tickets SET message_count =message_count + 1 WHERE ticket_id = ?",
+         [
+
+            ticketId
+         ]
+      );
+
+
+
+
+      console.log("Chat Updated");
+
+      res.json({
+         success: true,
+         message: "Reply Saved",
+         chat
+      });
+
+   } catch (err) {
+
+      console.log("================================");
+      console.log("SERVER ERROR");
+      console.log(err);
+
+      res.status(500).json({
+         success: false,
+         message: err.message,
+         stack: err.stack
+      });
+
+   }
+
+});
+
+app.get("/api/test", (req, res) => {
+   res.json({
+      message: "testing quality mobile shop"
+   });
+});
+
+
+
+
+app.get("/api/ticket/:ticketId", (req, res) => {
+   const ticketId = req.params.ticketId;
+
+   const sql =
+      "SELECT * FROM support_tickets WHERE ticket_id = ?";
+
+   db.query(
+      sql,
+      [ticketId],
+      (err, result) => {
+         if (err) {
+            console.log(err);
+
+            return res.status(500).json({
+               success: false,
+               message: "DB error",
+            });
+         }
+
+         if (result.length === 0) {
+            return res.status(404).json({
+               success: false,
+               message:
+                  "Ticket not found",
+            });
+         }
+
+         const ticket =
+            result[0];
+
+         res.json({
+            success: true,
+            ticket: {
+               ...ticket,
+               answers:
+                  JSON.parse(
+                     ticket.answers_json
+                  ),
+               chat:
+                  JSON.parse(
+                     ticket.chat_json
+                  ),
+            },
+         });
+      }
+   );
+});
+const otpStore = {};
+
+// NODEMAILER
+const transporter = nodemailer.createTransport({
+   service: "gmail",
+   auth: {
+      user: "aniketkumarsaha5@gmail.com",
+      pass: "elee suee lpvy miiz",
+   }
+});
+
+// SEND OTP
+app.post("/api/send-otp", async (req, res) => {
+   try {
+      const { email } = req.body;
+
+      console.log(email);
+
+
+      const otp =
+         Math.floor(
+            100000 + Math.random() * 900000
+         ).toString();
+
+      otpStore[email] = otp;
+
+
+
+
+      /*
+          await transporter.sendMail({
+            from: "aniketkumarsaha5@gmail.com",
+            to: email,
+            subject: "Your Verification Code",
+            html: `
+              <h2>Email Verification</h2>
+              <h1>${otp}</h1>
+            `,
+          });*/
+
+
+
+      await axios.post(
+         "https://ff.kolkatasuperb.com/emailapi.php",
+         {
+            email,
+            otp
+         }
+      );
+
+
+
+
+
+
+      res.json({
+         success: true,
+         message: "OTP sent",
+      });
+   } catch (err) {
+      console.log(err);
+
+      res.status(500).json({
+         success: false,
+      });
+   }
+});
+
+
+app.post("/api/admin/ticket/delete", async (req, res) => {
+
+   try {
+
+
+
+      const { ticketId } = req.body;
+
+      console.log("ticket"); console.log(ticketId);
+
+      const sql = `
+      DELETE FROM support_tickets
+      WHERE ticket_id = ?
+    `;
+
+      db.query(
+         sql,
+         [ticketId],
+         (err, result) => {
+
+            if (err) {
+               console.log(err);
+
+               return res.status(500).json({
+                  success: false,
+                  message: "Delete Failed"
+               });
+            }
+
+            res.json({
+               success: true,
+               message: "Ticket Deleted"
+            });
+
+         }
+      );
+
+   } catch (err) {
+
+      console.log(err);
+
+      res.status(500).json({
+         success: false
+      });
+
+   }
+
+});
+
+
+
+
+
+
+
+// VERIFY OTP
+app.post("/api/verify-otp", (req, res) => {
+   const { email, otp } = req.body;
+
+   if (otpStore[email] === otp) {
+      delete otpStore[email];
+
+      return res.json({
+         success: true,
+      });
+   }
+
+   res.status(400).json({
+      success: false,
+      message: "Invalid OTP",
+   });
+});
+
+// CREATE TICKET
+app.post("/api/ticket", (req, res) => {
+   try {
+      const {
+         issue,
+         answers,
+         chat,
+         description,
+         email,
+      } = req.body;
+
+      const ticketId =
+         "TKT-" +
+         uuidv4()
+            .replace(/-/g, "")
+            .slice(0, 10)
+            .toUpperCase();
+
+      const sql = `
+      INSERT INTO support_tickets
+      (
+        ticket_id,
+        email,
+        issue_type,
+        answers_json,
+        chat_json,
+        description
+      )
+      VALUES (?, ?, ?, ?, ?, ?)
+    `;
+
+      db.query(
+         sql,
+         [
+            ticketId,
+            email,
+            issue,
+            JSON.stringify(answers),
+            JSON.stringify(chat),
+            description,
+         ],
+         (err) => {
+            if (err) {
+               console.log(err);
+
+               return res.status(500).json({
+                  success: false,
+               });
+            }
+
+            res.json({
+               success: true,
+               ticket: {
+                  ticketId,
+               },
+            });
+         }
+      );
+   } catch (err) {
+      console.log(err);
+
+      res.status(500).json({
+         success: false,
+      });
+   }
+});
+
+/* -------- GET ALL TICKETS -------- */
+
+app.get("/api/tickets", (req, res) => {
+   db.query(
+      "SELECT * FROM support_tickets ORDER BY id DESC",
+      (err, rows) => {
+         if (err) {
+            return res.status(500).json({
+               success: false,
+            });
+         }
+
+         res.json(rows);
+      }
+   );
+});
 app.get("/api/test", (req, res) => {
    res.json({
       message: "testing quality mobile shop"
