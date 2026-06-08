@@ -1382,7 +1382,212 @@ app.get("/api/test", (req, res) => {
    });
 });
 
+app.post(
+   "/api/agent/register",
+   async (req, res) => {
 
+      try {
+
+         const {
+            name,
+            email,
+            password
+         } = req.body;
+
+         const [exists] =
+            await db.promise().query(
+               "SELECT * FROM agents WHERE email=?",
+               [email]
+            );
+
+         if (exists.length) {
+
+            return res.status(400).json({
+               success: false,
+               message:
+                  "Email already exists"
+            });
+
+         }
+
+         const hashed =
+            await bcrypt.hash(
+               password,
+               10
+            );
+
+         await db.promise().query(
+            `
+INSERT INTO agents
+(
+  name,
+  email,
+  password,
+  status
+)
+VALUES
+(
+  ?, ?, ?, 'inactive'
+)
+`,
+            [
+               name,
+               email,
+               hashed
+            ]
+         );
+
+         res.json({
+            success: true,
+            message:
+               "Agent Registered"
+         });
+
+      } catch (err) {
+
+         console.log(err);
+
+         res.status(500).json({
+            success: false
+         });
+
+      }
+
+   });
+
+
+
+
+
+
+app.get(
+   "/api/admin/agents",
+   async (req, res) => {
+
+      const [agents] =
+         await db.promise().query(
+            `
+ SELECT *
+ FROM agents
+ ORDER BY id DESC
+ `
+         );
+
+      res.json({
+         agents
+      });
+
+   });
+
+app.post(
+   "/api/admin/agent/approve",
+   async (req, res) => {
+
+      const { id } = req.body;
+
+      await db.promise().query(
+         `
+ UPDATE agents
+ SET status='active'
+ WHERE id=?
+ `,
+         [id]
+      );
+
+      res.json({
+         success: true
+      });
+
+   });
+
+
+
+app.post(
+   "/api/admin/agent/disable",
+   async (req, res) => {
+
+      const { id } = req.body;
+
+      await db.promise().query(
+         `
+ UPDATE agents
+ SET status='inactive'
+ WHERE id=?
+ `,
+         [id]
+      );
+
+      res.json({
+         success: true
+      });
+
+   });
+
+
+
+
+
+
+
+app.post("/api/agent/login", async (req, res) => {
+
+   const { email, password } = req.body;
+
+   const [agent] = await db.promise().query(
+      "SELECT * FROM agents WHERE email=?",
+      [email]
+   );
+
+   if (!agent.length) {
+      return res.json({
+         success: false,
+         message: "Agent Not Found"
+      });
+   }
+
+   const valid = await bcrypt.compare(
+      password,
+      agent[0].password
+   );
+
+   if (!valid) {
+      return res.json({
+         success: false,
+         message: "Wrong Password"
+      });
+   }
+
+
+
+
+
+
+   if (agent[0].status !== "active") {
+
+      return res.json({
+
+         success: false,
+
+         message:
+            "Admin approval pending"
+
+      });
+
+
+   }
+
+
+
+   res.json({
+      success: true,
+      agent: {
+         id: agent[0].id,
+         name: agent[0].name,
+         email: agent[0].email
+      }
+   });
+
+});
 
 app.get("/all-deliveries", getDeliveries);
 app.put("/update-delivery-date/:delivery_id", updateDeliveryDate);
