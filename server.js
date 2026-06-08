@@ -18,6 +18,8 @@ const axios = require("axios");
 const { v4: uuidv4 } = require("uuid");
 const app = express();
 
+const bcrypt = require("bcryptjs");
+
 const allowedOrigins = [
    process.env.FRONTEND_URL,
    "http://localhost:3000",
